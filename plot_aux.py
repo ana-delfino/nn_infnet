@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.cm as cm
 import pandas as pd
 import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix, make_scorer, accuracy_score, precision_score, recall_score, f1_score,roc_curve, roc_auc_score
 
 from typing import Optional, List
 
@@ -223,16 +224,16 @@ def plot_boxplots_by_columns_hue(df, column_names, hue):
 
     # Set up the figure
     num_columns = len(column_names)
-    num_rows = (num_columns + 3) // 4  # Up to 4 columns per row
+    num_rows = (num_columns + 3) // 4  
     fig, axes = plt.subplots(num_rows, 4, figsize=(20, 5 * num_rows))
     axes = axes.flatten()
-
+    fig.suptitle('Features númericas: boxplot', fontsize=20)
     for i, column_name in enumerate(column_names):
         ax = axes[i]
         if df[column_name].dtype != 'object' and df[column_name].dtype.name != 'category':
             # Plot boxplot for numerical data
-            sns.boxplot(data=df, y=column_name, ax=ax, hue=hue)
-            ax.set_title(f"Boxplot of {column_name}")
+            sns.boxplot(data=df, y=column_name, ax=ax, hue=hue, palette='Blues')
+            ax.set_title(f"{column_name}")
             ax.set_ylabel(column_name)
 
             ax.legend(loc='upper right')
@@ -246,3 +247,52 @@ def plot_boxplots_by_columns_hue(df, column_names, hue):
     plt.tight_layout()
     plt.show()   
 
+def plot_confusion_matrix(y_test, y_pred):
+
+  conf_matrix = confusion_matrix(y_test, y_pred)
+
+  sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=np.unique(y_test), yticklabels=np.unique(y_test))
+  plt.title('Matriz de Confusão')
+  plt.xlabel('Predito')
+  plt.ylabel('Verdadeiro')
+  plt.show()
+
+def plot_bar_list_features(df:pd.DataFrame, feature_list:list[str], column_name='diabetes'):
+    fig, axes = plt.subplots(1, 2, figsize=(15, 2 * 3))
+    fig.suptitle('Features: quantidade de observações ', fontsize=20)
+
+    axes = axes.flatten()
+    for i, column in enumerate(feature_list):
+
+        df_counts = df.groupby(f'{column}').count()[column_name].sort_values(ascending=False).reset_index(name='count')[0:10]
+        df_counts[f'{column}'] = df_counts[f'{column}'].astype(str)
+        bars = axes[i].bar(df_counts[f'{column}'], df_counts['count'], color='lightskyblue', edgecolor='black') 
+        for bar in bars:
+            yval = bar.get_height()
+            axes[i].text(bar.get_x() + bar.get_width()/2, yval + 1, int(yval), ha='center', va='bottom')
+        axes[i].set_xticklabels(df_counts[f'{column}'], rotation=45, ha='right')
+        axes[i].set_title(f'{column}', fontsize=12)
+
+        axes[i].tick_params(axis='x', rotation=45)
+        axes[i].set_ylim(0, max(df_counts['count']) + 10000)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()
+    
+def calculate_correlation_matrix(dataframe, variables):
+  """
+  Calculates the correlation matrix for multiple binary variables.
+
+  Args:
+    dataframe: A pandas DataFrame containing the data.
+    binary_variables: A list of names of the binary variable columns (0 or 1).
+
+  Returns:
+    A pandas DataFrame representing the correlation matrix.
+    Returns None if variables are not found.
+  """
+  if all(var in dataframe.columns for var in variables):
+    correlation_matrix = dataframe[variables].corr(method='pearson')
+    return correlation_matrix
+  else:
+    print("Warning: One or more binary variables not found in the DataFrame.")
+    return None
